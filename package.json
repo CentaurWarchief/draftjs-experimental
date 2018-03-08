@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "start": "parcel index.html"
+  },
+  "dependencies": {
+    "draft-js": "^0.10.5",
+    "react": "^16.2.0",
+    "react-dom": "^16.2.0",
+    "react-powerplug": "^0.1.5"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.6.2"
+  }
+}
