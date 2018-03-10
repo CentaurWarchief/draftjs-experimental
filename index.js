@@ -52,11 +52,12 @@ class DidMountWillUnmount extends React.Component {
   };
 
   componentDidMount = () => this.props.didMount();
-  componentWillUnmount = () => this.props.willUnmount();
 
   shouldComponentUpdate() {
     return false;
   }
+
+  componentWillUnmount = () => this.props.willUnmount();
 
   render() {
     return null;
@@ -128,6 +129,41 @@ function findSelectionBoundsWithinLeaves(currentSelection, leaves) {
   });
 
   return leave || null;
+}
+
+const FRUITS = ["Apple", "Orange", "Banana", "Pineapple"];
+
+class FruitsProvider extends React.Component {
+  static propTypes = {
+    value: PropTypes.string.isRequired,
+    onChange: PropTypes.func.isRequired
+  };
+
+  componentWillReceiveProps({ value }) {
+    // same values? nah - we aren't doing anything
+    if (this.props.value === value) {
+      return;
+    }
+
+    console.log(value);
+
+    // do we have some match?
+    const nextValues = FRUITS.filter(maybeFruit =>
+      maybeFruit.toLowerCase().includes(value)
+    );
+
+    this.props.onChange(nextValues);
+  }
+
+  render = () => null;
+}
+
+function withoutAt(stringWithAt) {
+  const atIndex = stringWithAt.indexOf("@");
+
+  return atIndex >= 0
+    ? stringWithAt.substring(atIndex + 1, stringWithAt.length)
+    : stringWithAt;
 }
 
 class InlineMentions extends React.Component {
@@ -228,7 +264,9 @@ class InlineMentions extends React.Component {
 
     return visible ? (
       <MentionsSuggestionsPortal top={top} left={left}>
-        {mentionQuery}
+        {children({
+          mentionQuery
+        })}
       </MentionsSuggestionsPortal>
     ) : null;
   }
@@ -286,7 +324,37 @@ function DraftExperimental() {
                   editorState={editorState}
                   onChange={onChange}
                 >
-                  {({ mentionQuery }) => mentionQuery}
+                  {({ mentionQuery }) => (
+                    <Value initial={[]}>
+                      {({
+                        value: offeredSuggestions,
+                        setValue: offerSuggestions
+                      }) => (
+                        <Fragment>
+                          {offeredSuggestions.length > 0 && (
+                            <ul
+                              style={{
+                                margin: 0,
+                                padding: 0,
+                                listStyle: "none"
+                              }}
+                            >
+                              {offeredSuggestions.map(offeredSuggestion => (
+                                <li key={offeredSuggestion}>
+                                  {offeredSuggestion}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+
+                          <FruitsProvider
+                            value={withoutAt(mentionQuery)}
+                            onChange={offerSuggestions}
+                          />
+                        </Fragment>
+                      )}
+                    </Value>
+                  )}
                 </InlineMentions>
               )}
             </ExperimentalEditor>
