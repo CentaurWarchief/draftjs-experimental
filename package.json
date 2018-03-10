@@ -3,12 +3,16 @@
     "start": "parcel index.html"
   },
   "dependencies": {
+    "create-react-context": "^0.2.1",
     "draft-js": "^0.10.5",
+    "find-with-regex": "^1.0.2",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
     "react-powerplug": "^0.1.5"
   },
   "devDependencies": {
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "parcel-bundler": "^1.6.2"
   }
 }
