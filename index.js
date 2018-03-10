@@ -67,7 +67,11 @@ class DidMountWillUnmount extends React.Component {
 function MentionsSuggestionsPortal({ top, left, children }) {
   return ReactDOM.createPortal(
     <div
-      style={{ position: "absolute", top, left, border: "1px solid #f1f1f1" }}
+      style={{
+        position: "absolute",
+        top,
+        left
+      }}
     >
       {children}
     </div>,
@@ -311,6 +315,24 @@ function ExperimentalEditor({ editorState, onChange, children }) {
   );
 }
 
+function OurSuggestionBox({ children }) {
+  return (
+    <div
+      style={{
+        borderRadius: 4,
+        backgroundColor: "#ffffff",
+        border: "1px solid #f1f1f1"
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function FruitEntry({ children }) {
+  return <li style={{ padding: 10 }}>{children}</li>;
+}
+
 function DraftExperimental() {
   return (
     <div style={{ padding: 20 }}>
@@ -330,7 +352,7 @@ function DraftExperimental() {
                         value: offeredSuggestions,
                         setValue: offerSuggestions
                       }) => (
-                        <Fragment>
+                        <OurSuggestionBox>
                           {offeredSuggestions.length > 0 && (
                             <ul
                               style={{
@@ -340,9 +362,9 @@ function DraftExperimental() {
                               }}
                             >
                               {offeredSuggestions.map(offeredSuggestion => (
-                                <li key={offeredSuggestion}>
+                                <FruitEntry key={offeredSuggestion}>
                                   {offeredSuggestion}
-                                </li>
+                                </FruitEntry>
                               ))}
                             </ul>
                           )}
@@ -351,7 +373,7 @@ function DraftExperimental() {
                             value={withoutAt(mentionQuery)}
                             onChange={offerSuggestions}
                           />
-                        </Fragment>
+                        </OurSuggestionBox>
                       )}
                     </Value>
                   )}
