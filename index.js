@@ -14,6 +14,7 @@ import ReactDOM from "react-dom";
 import { Value } from "react-powerplug";
 import createReactContext from "create-react-context";
 import findWithRegex from "find-with-regex";
+import OnEditorEvent, { callRegisteredEvents } from "./OnEditorEvent";
 
 const MentionSpanOffsetBag = {
   /**
@@ -305,6 +306,9 @@ function ExperimentalEditor({ editorState, onChange, children }) {
         placeholder="What's up?"
         editorState={editorState}
         onChange={onChange}
+        onDownArrow={callRegisteredEvents("onDownArrow")}
+        onUpArrow={callRegisteredEvents("onUpArrow")}
+        onEscape={callRegisteredEvents("onEscape")}
       />
 
       {children({
@@ -321,7 +325,8 @@ function OurSuggestionBox({ children }) {
       style={{
         borderRadius: 4,
         backgroundColor: "#ffffff",
-        border: "1px solid #f1f1f1"
+        border: "1px solid #f1f1f1",
+        overflow: "hidden"
       }}
     >
       {children}
@@ -329,8 +334,18 @@ function OurSuggestionBox({ children }) {
   );
 }
 
-function FruitEntry({ children }) {
-  return <li style={{ padding: 10 }}>{children}</li>;
+function FruitEntry({ children, isActive }) {
+  return (
+    <li
+      style={{
+        padding: 10,
+        backgroundColor: isActive ? "#105fea" : "#ffffff",
+        color: isActive ? "#ffffff" : "inherit"
+      }}
+    >
+      {children}
+    </li>
+  );
 }
 
 class SuggestionSelectionState extends React.Component {
@@ -344,9 +359,11 @@ class SuggestionSelectionState extends React.Component {
   };
 
   normalizeSelectionIndex = (selectionIndex, suggestionsCount) => {
-    return selectionIndex % suggestionsCount >= 0
-      ? selectionIndex
-      : selectionIndex + suggestionsCount;
+    const potentialIndex = selectionIndex % suggestionsCount;
+
+    return potentialIndex < 0
+      ? potentialIndex + suggestionsCount
+      : potentialIndex;
   };
 
   moveSelectionTo = candidateSelectionIndex => {
@@ -361,10 +378,15 @@ class SuggestionSelectionState extends React.Component {
     });
   };
 
-  handleSelectNext = () => this.moveSelectionTo(this.state.selectionIndex + 1);
+  handleSelectNext = () => {
+    event.preventDefault();
+    this.moveSelectionTo(this.state.selectionIndex + 1);
+  };
 
-  handleSelectPrevious = () =>
+  handleSelectPrevious = event => {
+    event.preventDefault();
     this.moveSelectionTo(this.state.selectionIndex - 1);
+  };
 
   render() {
     const { selectionIndex } = this.state;
@@ -373,7 +395,7 @@ class SuggestionSelectionState extends React.Component {
     return children({
       selectionIndex,
       moveSelectionToNextItem: this.handleSelectNext,
-      moveSelectionToPreviousItem: this.handleSelectionPrevious
+      moveSelectionToPreviousItem: this.handleSelectPrevious
     });
   }
 }
@@ -402,20 +424,36 @@ function DraftExperimental() {
                             <SuggestionSelectionState
                               suggestionsCount={offeredSuggestions.length}
                             >
-                              {({ selectionIndex }) => (
-                                <ul
-                                  style={{
-                                    margin: 0,
-                                    padding: 0,
-                                    listStyle: "none"
-                                  }}
-                                >
-                                  {offeredSuggestions.map(offeredSuggestion => (
-                                    <FruitEntry key={offeredSuggestion}>
-                                      {offeredSuggestion}
-                                    </FruitEntry>
-                                  ))}
-                                </ul>
+                              {({
+                                selectionIndex,
+                                moveSelectionToNextItem,
+                                moveSelectionToPreviousItem
+                              }) => (
+                                <Fragment>
+                                  <OnEditorEvent
+                                    onUpArrow={moveSelectionToPreviousItem}
+                                    onDownArrow={moveSelectionToNextItem}
+                                  />
+
+                                  <ul
+                                    style={{
+                                      margin: 0,
+                                      padding: 0,
+                                      listStyle: "none"
+                                    }}
+                                  >
+                                    {offeredSuggestions.map(
+                                      (offeredSuggestion, index) => (
+                                        <FruitEntry
+                                          key={offeredSuggestion}
+                                          isActive={selectionIndex === index}
+                                        >
+                                          {offeredSuggestion}
+                                        </FruitEntry>
+                                      )
+                                    )}
+                                  </ul>
+                                </Fragment>
                               )}
                             </SuggestionSelectionState>
                           )}
