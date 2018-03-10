@@ -333,6 +333,51 @@ function FruitEntry({ children }) {
   return <li style={{ padding: 10 }}>{children}</li>;
 }
 
+class SuggestionSelectionState extends React.Component {
+  static propTypes = {
+    // how many suggestions are out there?
+    suggestionsCount: PropTypes.number.isRequired
+  };
+
+  state = {
+    selectionIndex: -1
+  };
+
+  normalizeSelectionIndex = (selectionIndex, suggestionsCount) => {
+    return selectionIndex % suggestionsCount >= 0
+      ? selectionIndex
+      : selectionIndex + suggestionsCount;
+  };
+
+  moveSelectionTo = candidateSelectionIndex => {
+    const { selectionIndex } = this.state;
+    const { suggestionsCount } = this.props;
+
+    this.setState({
+      selectionIndex: this.normalizeSelectionIndex(
+        candidateSelectionIndex,
+        suggestionsCount
+      )
+    });
+  };
+
+  handleSelectNext = () => this.moveSelectionTo(this.state.selectionIndex + 1);
+
+  handleSelectPrevious = () =>
+    this.moveSelectionTo(this.state.selectionIndex - 1);
+
+  render() {
+    const { selectionIndex } = this.state;
+    const { children } = this.props;
+
+    return children({
+      selectionIndex,
+      moveSelectionToNextItem: this.handleSelectNext,
+      moveSelectionToPreviousItem: this.handleSelectionPrevious
+    });
+  }
+}
+
 function DraftExperimental() {
   return (
     <div style={{ padding: 20 }}>
@@ -354,19 +399,25 @@ function DraftExperimental() {
                       }) => (
                         <OurSuggestionBox>
                           {offeredSuggestions.length > 0 && (
-                            <ul
-                              style={{
-                                margin: 0,
-                                padding: 0,
-                                listStyle: "none"
-                              }}
+                            <SuggestionSelectionState
+                              suggestionsCount={offeredSuggestions.length}
                             >
-                              {offeredSuggestions.map(offeredSuggestion => (
-                                <FruitEntry key={offeredSuggestion}>
-                                  {offeredSuggestion}
-                                </FruitEntry>
-                              ))}
-                            </ul>
+                              {({ selectionIndex }) => (
+                                <ul
+                                  style={{
+                                    margin: 0,
+                                    padding: 0,
+                                    listStyle: "none"
+                                  }}
+                                >
+                                  {offeredSuggestions.map(offeredSuggestion => (
+                                    <FruitEntry key={offeredSuggestion}>
+                                      {offeredSuggestion}
+                                    </FruitEntry>
+                                  ))}
+                                </ul>
+                              )}
+                            </SuggestionSelectionState>
                           )}
 
                           <FruitsProvider
