@@ -1,6 +1,7 @@
 import "draft-js/dist/Draft.css";
 
 import {
+  Modifier,
   CompositeDecorator,
   Editor,
   EditorState,
@@ -150,8 +151,6 @@ class FruitsProvider extends React.Component {
       return;
     }
 
-    console.log(value);
-
     // do we have some match?
     const nextValues = FRUITS.filter(maybeFruit =>
       maybeFruit.toLowerCase().includes(value)
@@ -277,6 +276,16 @@ class InlineMentions extends React.Component {
   }
 }
 
+function findEntitiesByType(entityType) {
+  return (contentBlock, callback, contentState) =>
+    contentBlock.findEntityRanges(
+      character =>
+        character.getEntity() !== null &&
+        contentState.getEntity(character.getEntity()).getType() === entityType,
+      callback
+    );
+}
+
 function MentionSpan({ offsetKey, children }) {
   const putOffsetKey = () => MentionSpanOffsetBag.putOffsetKey(offsetKey);
   const delOffsetKey = () => MentionSpanOffsetBag.delOffsetKey(offsetKey);
@@ -289,6 +298,10 @@ function MentionSpan({ offsetKey, children }) {
   );
 }
 
+function BlueMention({ children }) {
+  return <span style={{ backgroundColor: "#ebf4fa" }}>{children}</span>;
+}
+
 const MENTION_SPAN_REGEX = /(?:\s|^)@[\w]*/g;
 
 const decorators = new CompositeDecorator([
@@ -296,6 +309,10 @@ const decorators = new CompositeDecorator([
     strategy: (block, callback) =>
       findWithRegex(MENTION_SPAN_REGEX, block, callback),
     component: MentionSpan
+  },
+  {
+    strategy: findEntitiesByType("MENTION"),
+    component: BlueMention
   }
 ]);
 
@@ -309,6 +326,7 @@ function ExperimentalEditor({ editorState, onChange, children }) {
         onDownArrow={callRegisteredEvents("onDownArrow")}
         onUpArrow={callRegisteredEvents("onUpArrow")}
         onEscape={callRegisteredEvents("onEscape")}
+        handleReturn={callRegisteredEvents("handleReturn")}
       />
 
       {children({
@@ -358,6 +376,14 @@ class SuggestionSelectionState extends React.Component {
     selectionIndex: -1
   };
 
+  componentWillReceiveProps({ suggestionsCount }) {
+    if (this.props.suggestionsCount !== suggestionsCount) {
+      this.setState({
+        selectionIndex: -1
+      });
+    }
+  }
+
   normalizeSelectionIndex = (selectionIndex, suggestionsCount) => {
     const potentialIndex = selectionIndex % suggestionsCount;
 
@@ -400,6 +426,30 @@ class SuggestionSelectionState extends React.Component {
   }
 }
 
+function insertMentionEntity(
+  editorState,
+  mentionSelection,
+  displayText,
+  mutability = "SEGMENTED"
+) {
+  const originalContent = editorState.getCurrentContent();
+
+  const conrentStateAfterMention = originalContent.createEntity(
+    "MENTION",
+    mutability
+  );
+
+  const replacedContent = Modifier.replaceText(
+    editorState.getCurrentContent(),
+    mentionSelection,
+    displayText,
+    null,
+    conrentStateAfterMention.getLastCreatedEntityKey()
+  );
+
+  return EditorState.push(editorState, replacedContent, "apply-entity");
+}
+
 function DraftExperimental() {
   return (
     <div style={{ padding: 20 }}>
@@ -433,6 +483,30 @@ function DraftExperimental() {
                                   <OnEditorEvent
                                     onUpArrow={moveSelectionToPreviousItem}
                                     onDownArrow={moveSelectionToNextItem}
+                                    onEscape={() => offerSuggestions([])}
+                                    handleReturn={() => {
+                                      if (selectionIndex < 0) {
+                                        return;
+                                      }
+
+                                      const selectionAfter = editorState
+                                        .getCurrentContent()
+                                        .getSelectionAfter();
+
+                                      onChange(
+                                        insertMentionEntity(
+                                          editorState,
+                                          selectionAfter.merge({
+                                            anchorOffset:
+                                              selectionAfter.getFocusOffset() -
+                                              mentionQuery.length
+                                          }),
+                                          offeredSuggestions[selectionIndex]
+                                        )
+                                      );
+
+                                      return true;
+                                    }}
                                   />
 
                                   <ul
